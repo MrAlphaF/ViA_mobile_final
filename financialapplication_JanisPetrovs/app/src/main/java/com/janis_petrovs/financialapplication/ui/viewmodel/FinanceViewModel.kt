@@ -1,24 +1,25 @@
-package com.janis_petrovs.financialapplication.ui.viewmodel
+// New content for FinanceViewModel.kt
+package com.janis_petrovs.financialapplication.ui.viewmodel // Will be updated
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.janis_petrovs.financialapplication.data.Task
-import com.janis_petrovs.financialapplication.data.TaskDao
+import com.janis_petrovs.financialapplication.data.Transaction
+import com.janis_petrovs.financialapplication.data.TransactionDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
-class TaskViewModel(private val dao: TaskDao) : ViewModel() {
-    val tasks: Flow<List<Task>> = dao.getAllTasks()
+class FinanceViewModel(private val dao: TransactionDao) : ViewModel() {
+    val allTransactions: Flow<List<Transaction>> = dao.getAllTransactions()
 
-    fun addTask(title: String) {
+    fun addTransaction(transaction: Transaction) {
         viewModelScope.launch {
-            dao.insertTask(Task(title = title))
+            dao.insert(transaction)
         }
     }
 
-    fun deleteTask(task: Task) {
+    fun deleteTransaction(transaction: Transaction) {
         viewModelScope.launch {
-            dao.deleteTask(task)
+            dao.delete(transaction)
         }
     }
 }

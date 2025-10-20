@@ -1,14 +1,15 @@
-package com.janis_petrovs.financialapplication.ui.viewmodel
+// New content for FinanceViewModelFactory.kt
+package com.janis_petrovs.financialapplication.ui.viewmodel // Will be updated
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.janis_petrovs.financialapplication.data.TaskDao
+import com.janis_petrovs.financialapplication.data.TransactionDao
 
-class TaskViewModelFactory(private val dao: TaskDao) : ViewModelProvider.Factory {
+class FinanceViewModelFactory(private val dao: TransactionDao) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(TaskViewModel::class.java)) {
+        if (modelClass.isAssignableFrom(FinanceViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return TaskViewModel(dao) as T
+            return FinanceViewModel(dao) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

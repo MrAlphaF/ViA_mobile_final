@@ -1,19 +1,17 @@
-package com.janis_petrovs.financialapplication.data
+// New content for TransactionDao.kt
+package com.janis_petrovs.financialapplication.data // Will be updated when you move it
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.Query
+import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface TaskDao {
-    @Query("SELECT * FROM tasks")
-    fun getAllTasks(): Flow<List<Task>>
-
+interface TransactionDao {
     @Insert
-    suspend fun insertTask(task: Task)
+    suspend fun insert(transaction: Transaction)
 
     @Delete
-    suspend fun deleteTask(task: Task)
+    suspend fun delete(transaction: Transaction)
+
+    @Query("SELECT * FROM transactions ORDER BY date DESC")
+    fun getAllTransactions(): Flow<List<Transaction>>
 }

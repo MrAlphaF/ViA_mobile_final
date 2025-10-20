@@ -1,11 +1,10 @@
+// Updated content for AppDatabase.kt
 package com.janis_petrovs.financialapplication.data
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.janis_petrovs.financialapplication.data.Task
-import com.janis_petrovs.financialapplication.data.TaskDao
 
-@Database(entities = [Task::class], version = 1)
+@Database(entities = [Transaction::class], version = 1) // <-- Change here
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun taskDao(): TaskDao
+    abstract fun transactionDao(): TransactionDao // <-- And change here
 }
