@@ -1,16 +1,13 @@
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    // The following plugin seems to be what you intended to use instead of libs.plugins.kotlin.compose
-    // Make sure you have defined 'compose-compiler' in your libs.versions.toml
     alias(libs.plugins.kotlin.compose)
     id("kotlin-kapt")
 }
 
 android {
     namespace = "com.janis_petrovs.financialapplication"
-    compileSdk = 36
+    compileSdk = 34 // <-- CHANGED: Switched from unstable 36 to stable 34
 
     defaultConfig {
         applicationId = "com.janis_petrovs.financialapplication"
@@ -63,6 +60,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
+    implementation("androidx.compose.material:material-icons-extended-android:1.6.8")
+
     implementation("androidx.room:room-runtime:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
@@ -76,4 +75,3 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
-
