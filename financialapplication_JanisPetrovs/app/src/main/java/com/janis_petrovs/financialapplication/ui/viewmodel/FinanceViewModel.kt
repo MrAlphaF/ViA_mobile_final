@@ -1,7 +1,9 @@
-package com.janis_petrovs.financialapplication
+package com.janis_petrovs.financialapplication.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.janis_petrovs.financialapplication.data.Task
+import com.janis_petrovs.financialapplication.data.TaskDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 

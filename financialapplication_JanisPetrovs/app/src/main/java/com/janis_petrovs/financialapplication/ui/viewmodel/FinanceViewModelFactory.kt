@@ -1,7 +1,8 @@
-package com.janis_petrovs.financialapplication
+package com.janis_petrovs.financialapplication.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.janis_petrovs.financialapplication.data.TaskDao
 
 class TaskViewModelFactory(private val dao: TaskDao) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

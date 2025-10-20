@@ -1,4 +1,4 @@
-package com.janis_petrovs.financialapplication
+package com.janis_petrovs.financialapplication.data
 
 import androidx.room.Dao
 import androidx.room.Delete

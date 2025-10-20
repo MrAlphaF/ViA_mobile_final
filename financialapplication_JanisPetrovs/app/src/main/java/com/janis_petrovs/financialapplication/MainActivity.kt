@@ -11,6 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.janis_petrovs.financialapplication.data.DatabaseProvider
+import com.janis_petrovs.financialapplication.data.TaskDao
+import com.janis_petrovs.financialapplication.ui.viewmodel.TaskViewModel
+import com.janis_petrovs.financialapplication.ui.viewmodel.TaskViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
