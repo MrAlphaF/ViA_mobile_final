@@ -1,4 +1,4 @@
-package com.janis.petrov.financialapplication
+package com.janis_petrovs.financialapplication
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

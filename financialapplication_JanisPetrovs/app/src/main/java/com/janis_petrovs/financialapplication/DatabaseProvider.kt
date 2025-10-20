@@ -1,4 +1,4 @@
-package com.janis.petrov.financialapplication
+package com.janis_petrovs.financialapplication
 
 import android.content.Context
 import androidx.room.Room

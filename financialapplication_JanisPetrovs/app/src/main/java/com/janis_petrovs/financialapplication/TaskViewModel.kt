@@ -1,4 +1,4 @@
-package com.janis.petrov.financialapplication
+package com.janis_petrovs.financialapplication
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

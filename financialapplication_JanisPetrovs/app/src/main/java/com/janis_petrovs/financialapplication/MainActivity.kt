@@ -1,4 +1,4 @@
-package com.janis.petrov.financialapplication
+package com.janis_petrovs.financialapplication
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

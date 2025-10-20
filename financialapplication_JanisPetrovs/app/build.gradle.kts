@@ -1,6 +1,10 @@
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    // The following plugin seems to be what you intended to use instead of libs.plugins.kotlin.compose
+    // Make sure you have defined 'compose-compiler' in your libs.versions.toml
+    alias(libs.plugins.kotlin.compose)
     id("kotlin-kapt")
 }
 
@@ -11,7 +15,7 @@ android {
     defaultConfig {
         applicationId = "com.janis_petrovs.financialapplication"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -72,3 +76,4 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
+
