@@ -1,4 +1,3 @@
-// In: ui/screens/PlanningScreen.kt
 package com.janis_petrovs.financialapplication.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -6,48 +5,57 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.janis_petrovs.financialapplication.data.Transaction
 import com.janis_petrovs.financialapplication.ui.theme.FinancialApplicationTheme
+import com.janis_petrovs.financialapplication.ui.viewmodel.FinanceViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlanningScreen() {
-    // A list of sample categories based on your mockup
-    val categories = listOf("Food", "Fuel", "Repairs", "Clothing", "Pets")
+fun PlanningScreen(navController: NavController, viewModel: FinanceViewModel) {
+    val transactions by viewModel.allTransactions.collectAsState(initial = emptyList())
+
+    val totalIncome = transactions.filter { !it.isExpense }.sumOf { it.amount }
+    val totalExpenses = transactions.filter { it.isExpense }.sumOf { it.amount }
+    val balance = totalIncome - totalExpenses
+    val balanceColor = if (balance >= 0) Color(0xFF008000) else Color.Red
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Planning") },
+                title = { Text("Transactions") }, // Renamed for clarity
                 actions = {
-                    IconButton(onClick = { /* TODO: Handle add action */ }) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Item")
+                    IconButton(onClick = { navController.navigate("add_transaction") }) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Transaction")
                     }
                 }
             )
         },
         bottomBar = {
-            // This mimics the "Income" section at the bottom
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 8.dp // Gives a nice shadow effect
-            ) {
+            Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 8.dp) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "Income:", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "10000 $", fontSize = 18.sp)
+                    Text(text = "Balance:", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "$${"%.2f".format(balance)}",
+                        fontSize = 18.sp,
+                        color = balanceColor,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -56,33 +64,52 @@ fun PlanningScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            items(categories) { category ->
-                CategoryRow(categoryName = category)
-                Divider() // A thin line between items
+            item {
+                Text(
+                    "Recent History",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            // --- CHANGE IS HERE ---
+            // The filter is removed to show all transactions
+            items(transactions) { transaction ->
+                TransactionRow(
+                    transaction = transaction,
+                    onDeleteClicked = { viewModel.deleteTransaction(transaction) }
+                )
+                Divider()
             }
         }
     }
 }
 
 @Composable
-fun CategoryRow(categoryName: String) {
+fun TransactionRow(transaction: Transaction, onDeleteClicked: () -> Unit) {
+    val amountColor = if (transaction.isExpense) Color.Red else Color(0xFF008000) // Dark Green
+    val amountPrefix = if (transaction.isExpense) "-" else "+"
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 16.dp),
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = categoryName, fontSize = 16.sp, modifier = Modifier.weight(1f))
-    }
-}
-
-// The preview allows you to see your design without running the app
-@Preview(showBackground = true)
-@Composable
-fun PlanningScreenPreview() {
-    FinancialApplicationTheme {
-        PlanningScreen()
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = transaction.description, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = transaction.category, fontSize = 12.sp, color = Color.Gray)
+        }
+        Text(
+            text = "$amountPrefix$${"%.2f".format(transaction.amount)}",
+            fontSize = 16.sp,
+            color = amountColor,
+            fontWeight = FontWeight.SemiBold
+        )
+        IconButton(onClick = onDeleteClicked) {
+            Icon(Icons.Default.Delete, contentDescription = "Delete Transaction", tint = Color.Gray)
+        }
     }
 }

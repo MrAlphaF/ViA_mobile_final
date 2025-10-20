@@ -1,5 +1,4 @@
-// New content for FinanceViewModel.kt
-package com.janis_petrovs.financialapplication.ui.viewmodel // Will be updated
+package com.janis_petrovs.financialapplication.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

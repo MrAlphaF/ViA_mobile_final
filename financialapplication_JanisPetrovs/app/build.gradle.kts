@@ -7,7 +7,8 @@ plugins {
 
 android {
     namespace = "com.janis_petrovs.financialapplication"
-    compileSdk = 34 // <-- CHANGED: Switched from unstable 36 to stable 34
+    compileSdk = 36
+    // <-- CHANGED: Switched from unstable 36 to stable 34
 
     defaultConfig {
         applicationId = "com.janis_petrovs.financialapplication"
@@ -59,6 +60,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 
     implementation("androidx.compose.material:material-icons-extended-android:1.6.8")
 
