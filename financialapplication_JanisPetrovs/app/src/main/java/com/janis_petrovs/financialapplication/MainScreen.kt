@@ -79,7 +79,7 @@ fun MainScreen(viewModel: FinanceViewModel) {
             ) {
                 composable(DrawerScreen.Planning.route) { PlanningScreen(navController, viewModel) }
                 composable(DrawerScreen.History.route) { HistoryScreen(viewModel = viewModel) }
-                composable(DrawerScreen.Reports.route) { ReportsScreen() }
+                composable(DrawerScreen.Reports.route) { ReportsScreen(viewModel = viewModel) }
                 composable("add_transaction") { AddTransactionScreen(navController, viewModel) }
             }
         }
