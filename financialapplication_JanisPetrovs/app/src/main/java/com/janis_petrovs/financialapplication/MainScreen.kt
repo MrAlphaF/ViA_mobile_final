@@ -2,8 +2,10 @@ package com.janis_petrovs.financialapplication
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -24,7 +26,7 @@ import com.janis_petrovs.financialapplication.ui.viewmodel.FinanceViewModel
 import kotlinx.coroutines.launch
 
 sealed class DrawerScreen(val route: String, val label: String, val icon: ImageVector) {
-    object Planning : DrawerScreen("planning", "Planning", Icons.Default.List)
+    object Planning : DrawerScreen("planning", "Planning", Icons.AutoMirrored.Filled.List)
     object History : DrawerScreen("history", "History", Icons.Default.History)
     object Reports : DrawerScreen("reports", "Reports", Icons.Default.Assessment)
 }
@@ -58,16 +60,12 @@ fun MainScreen(viewModel: FinanceViewModel) {
             )
         }
     ) {
-
         Scaffold(
             topBar = {
-
                 TopAppBar(
                     title = { Text("Financial Planner") },
                     navigationIcon = {
-                        IconButton(onClick = {
-                            scope.launch { drawerState.open() }
-                        }) {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.Menu, contentDescription = "Menu")
                         }
                     }
@@ -80,7 +78,7 @@ fun MainScreen(viewModel: FinanceViewModel) {
                 Modifier.padding(innerPadding)
             ) {
                 composable(DrawerScreen.Planning.route) { PlanningScreen(navController, viewModel) }
-                composable(DrawerScreen.History.route) { HistoryScreen() }
+                composable(DrawerScreen.History.route) { HistoryScreen(viewModel = viewModel) }
                 composable(DrawerScreen.Reports.route) { ReportsScreen() }
                 composable("add_transaction") { AddTransactionScreen(navController, viewModel) }
             }
@@ -92,7 +90,6 @@ fun MainScreen(viewModel: FinanceViewModel) {
 fun AppDrawerContent(onItemClick: (String) -> Unit, currentRoute: String?) {
     ModalDrawerSheet {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Profile Header
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -110,8 +107,7 @@ fun AppDrawerContent(onItemClick: (String) -> Unit, currentRoute: String?) {
                     Text("Anna@company.com", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Divider()
-
+            HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
 
             drawerItems.forEach { screen ->
                 NavigationDrawerItem(

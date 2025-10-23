@@ -1,5 +1,4 @@
-// New content for TransactionDao.kt
-package com.janis_petrovs.financialapplication.data // Will be updated when you move it
+package com.janis_petrovs.financialapplication.data
 
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
@@ -14,4 +13,7 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions ORDER BY date DESC")
     fun getAllTransactions(): Flow<List<Transaction>>
+
+    @Query("SELECT * FROM transactions WHERE date BETWEEN :startOfMonth AND :endOfMonth")
+    fun getTransactionsForMonth(startOfMonth: Long, endOfMonth: Long): Flow<List<Transaction>>
 }
