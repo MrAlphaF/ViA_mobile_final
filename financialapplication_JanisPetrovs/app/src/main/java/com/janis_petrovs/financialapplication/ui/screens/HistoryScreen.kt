@@ -28,7 +28,6 @@ import java.util.Locale
 
 @Composable
 fun HistoryScreen(viewModel: FinanceViewModel) {
-    // Collect the full monthly summary and the selected date from the ViewModel
     val summary by viewModel.monthlySummary.collectAsState(
         initial = MonthlySummary(0.0, 0.0, emptyList())
     )
@@ -40,7 +39,6 @@ fun HistoryScreen(viewModel: FinanceViewModel) {
         Color(0xff009688), Color(0xffFF9800), Color(0xff795548), Color(0xff607D8B)
     )
 
-    // Check if the "Next" button should be enabled (true if not the current month)
     val isNextMonthButtonEnabled = !isSameMonth(selectedDate, Calendar.getInstance())
 
     Column(
@@ -49,7 +47,6 @@ fun HistoryScreen(viewModel: FinanceViewModel) {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Month navigation controls
         MonthSelector(
             calendar = selectedDate,
             onPrevious = { viewModel.goToPreviousMonth() },
@@ -59,7 +56,6 @@ fun HistoryScreen(viewModel: FinanceViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Summary Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(4.dp)
@@ -74,7 +70,6 @@ fun HistoryScreen(viewModel: FinanceViewModel) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Pie Chart and Legend Section
         if (summary.chartData.isEmpty()) {
             Box(
                 modifier = Modifier.weight(1f),
@@ -140,7 +135,7 @@ fun SummaryRow(label: String, amount: Double, color: Color, isTotal: Boolean = f
             fontSize = if (isTotal) 18.sp else 16.sp
         )
         Text(
-            text = "$${"%.2f".format(amount)}",
+            text = "€${"%.2f".format(amount)}",
             color = color,
             fontWeight = if (isTotal) FontWeight.Bold else FontWeight.Normal,
             fontSize = if (isTotal) 18.sp else 16.sp
@@ -192,7 +187,7 @@ fun ChartLegend(chartData: List<ChartData>, colors: List<Color>) {
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    text = "$${"%.2f".format(item.amount)}",
+                    text = "€${"%.2f".format(item.amount)}",
                     style = MaterialTheme.typography.bodyLarge
                 )
             }

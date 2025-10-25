@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -26,6 +27,11 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
     var isExpense by remember { mutableStateOf(true) }
     var isCategoryMenuExpanded by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(transactionCategories[0]) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    errorMessage?.let {
+        ErrorDialog(message = it, onDismiss = { errorMessage = null })
+    }
 
     Scaffold(
         topBar = {
@@ -59,7 +65,7 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
             OutlinedTextField(
                 value = amount,
                 onValueChange = { amount = it },
-                label = { Text("Amount") },
+                label = { Text("Amount (€)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -74,7 +80,6 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Category") },
-
                     enabled = isExpense,
                     trailingIcon = { if(isExpense) ExposedDropdownMenuDefaults.TrailingIcon(expanded = isCategoryMenuExpanded) },
                     modifier = Modifier.menuAnchor().fillMaxWidth()
@@ -95,7 +100,7 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
                 }
             }
 
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(selected = isExpense, onClick = { isExpense = true })
                 Text("Expense", Modifier.padding(start = 4.dp))
                 Spacer(Modifier.width(16.dp))
@@ -106,7 +111,7 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
             Button(
                 onClick = {
                     val amountDouble = amount.toDoubleOrNull()
-                    if (description.isNotBlank() && amountDouble != null) {
+                    if (description.isNotBlank() && amountDouble != null && amountDouble > 0) {
                         val newTransaction = Transaction(
                             description = description,
                             amount = amountDouble,
@@ -116,6 +121,9 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
                         )
                         viewModel.addTransaction(newTransaction)
                         navController.popBackStack()
+                    } else {
+
+                        errorMessage = "Please enter a valid description and a positive amount."
                     }
                 },
                 modifier = Modifier.fillMaxWidth()

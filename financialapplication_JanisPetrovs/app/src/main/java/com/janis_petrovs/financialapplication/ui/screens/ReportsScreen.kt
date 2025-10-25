@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.janis_petrovs.financialapplication.ui.viewmodel.BarChartData
 import com.janis_petrovs.financialapplication.ui.viewmodel.FinanceViewModel
 import com.janis_petrovs.financialapplication.ui.viewmodel.ReportsData
+import kotlin.math.roundToInt // <-- THE NEW, NECESSARY IMPORT
 
 @Composable
 fun ReportsScreen(viewModel: FinanceViewModel) {
@@ -33,7 +34,6 @@ fun ReportsScreen(viewModel: FinanceViewModel) {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
         Text("Spending Breakdown", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
         Row(
@@ -74,8 +74,7 @@ fun BudgetGauge(
     budgetAmount: Double,
     modifier: Modifier = Modifier
 ) {
-
-    val progress = (spentAmount / budgetAmount).toFloat().coerceIn(0f, 1f)
+    val progress = if (budgetAmount > 0) (spentAmount / budgetAmount).toFloat() else 0f
     val color = if (progress < 0.25) Color(0xFF008000) else if (progress < 0.5) Color(0xFFFF9800) else Color.Red
 
     Column(
@@ -102,7 +101,8 @@ fun BudgetGauge(
                     style = Stroke(width = 20f, cap = StrokeCap.Round)
                 )
             }
-            Text(text = "${(progress * 100).toInt()}%", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            
+            Text(text = "${(progress * 100).roundToInt()}%", fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(text = label, style = MaterialTheme.typography.bodyMedium)
