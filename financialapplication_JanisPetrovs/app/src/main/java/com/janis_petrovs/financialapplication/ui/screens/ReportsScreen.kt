@@ -101,7 +101,7 @@ fun BudgetGauge(
                     style = Stroke(width = 20f, cap = StrokeCap.Round)
                 )
             }
-            
+
             Text(text = "${(progress * 100).roundToInt()}%", fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(8.dp))
