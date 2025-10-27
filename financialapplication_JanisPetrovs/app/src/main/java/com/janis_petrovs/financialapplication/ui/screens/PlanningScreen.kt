@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.janis_petrovs.financialapplication.data.Transaction
-import com.janis_petrovs.financialapplication.ui.theme.FinancialApplicationTheme
 import com.janis_petrovs.financialapplication.ui.viewmodel.FinanceViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +33,7 @@ fun PlanningScreen(navController: NavController, viewModel: FinanceViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Transactions") }, // Renamed for clarity
+                title = { Text("Transactions") },
                 actions = {
                     IconButton(onClick = { navController.navigate("add_transaction") }) {
                         Icon(Icons.Default.Add, contentDescription = "Add Transaction")
@@ -51,7 +50,7 @@ fun PlanningScreen(navController: NavController, viewModel: FinanceViewModel) {
                 ) {
                     Text(text = "Balance:", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Text(
-                        text = "$${"%.2f".format(balance)}",
+                        text = "€${"%.2f".format(balance)}",
                         fontSize = 18.sp,
                         color = balanceColor,
                         fontWeight = FontWeight.Bold
@@ -73,14 +72,12 @@ fun PlanningScreen(navController: NavController, viewModel: FinanceViewModel) {
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
-            // --- CHANGE IS HERE ---
-            // The filter is removed to show all transactions
             items(transactions) { transaction ->
                 TransactionRow(
                     transaction = transaction,
                     onDeleteClicked = { viewModel.deleteTransaction(transaction) }
                 )
-                Divider()
+                HorizontalDivider()
             }
         }
     }
@@ -88,7 +85,7 @@ fun PlanningScreen(navController: NavController, viewModel: FinanceViewModel) {
 
 @Composable
 fun TransactionRow(transaction: Transaction, onDeleteClicked: () -> Unit) {
-    val amountColor = if (transaction.isExpense) Color.Red else Color(0xFF008000) // Dark Green
+    val amountColor = if (transaction.isExpense) Color.Red else Color(0xFF008000)
     val amountPrefix = if (transaction.isExpense) "-" else "+"
 
     Row(
@@ -103,7 +100,7 @@ fun TransactionRow(transaction: Transaction, onDeleteClicked: () -> Unit) {
             Text(text = transaction.category, fontSize = 12.sp, color = Color.Gray)
         }
         Text(
-            text = "$amountPrefix$${"%.2f".format(transaction.amount)}",
+            text = "$amountPrefix€${"%.2f".format(transaction.amount)}",
             fontSize = 16.sp,
             color = amountColor,
             fontWeight = FontWeight.SemiBold

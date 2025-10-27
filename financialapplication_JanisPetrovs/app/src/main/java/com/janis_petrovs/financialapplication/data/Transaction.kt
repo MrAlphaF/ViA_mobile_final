@@ -1,5 +1,4 @@
-// New content for Transaction.kt
-package com.janis_petrovs.financialapplication.data // Will be updated when you move it
+package com.janis_petrovs.financialapplication.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

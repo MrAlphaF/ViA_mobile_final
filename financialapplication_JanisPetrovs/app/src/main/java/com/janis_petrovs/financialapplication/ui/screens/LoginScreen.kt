@@ -17,6 +17,11 @@ import androidx.navigation.NavController
 fun LoginScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    errorMessage?.let {
+        ErrorDialog(message = it, onDismiss = { errorMessage = null })
+    }
 
     Column(
         modifier = Modifier
@@ -55,13 +60,13 @@ fun LoginScreen(navController: NavController) {
 
         Button(
             onClick = {
-                // --- FAKE LOGIN LOGIC ---
-                // For now, any non-empty fields will "log in".
                 if (email.isNotBlank() && password.isNotBlank()) {
                     navController.navigate("main_app") {
-                        // This clears the login/signup screen from the back stack
                         popUpTo("auth") { inclusive = true }
                     }
+                } else {
+                    // Show error popup if fields are blank
+                    errorMessage = "Please enter both email and password."
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -70,10 +75,38 @@ fun LoginScreen(navController: NavController) {
             Text("Sign In")
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedButton(
+            onClick = {
+                navController.navigate("main_app") {
+                    popUpTo("auth") { inclusive = true }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(vertical = 16.dp)
+        ) {
+            Text("Login as Guest")
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         TextButton(onClick = { navController.navigate("signup") }) {
             Text("Don't have an account? Sign Up")
         }
     }
+}
+
+@Composable
+fun ErrorDialog(message: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Error") },
+        text = { Text(message) },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("OK")
+            }
+        }
+    )
 }
