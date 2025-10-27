@@ -1,5 +1,4 @@
-// New content for FinanceViewModelFactory.kt
-package com.group3.financialapplication.ui.viewmodel // Will be updated
+package com.group3.financialapplication.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
