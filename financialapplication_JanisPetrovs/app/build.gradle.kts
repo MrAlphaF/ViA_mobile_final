@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.janis_petrovs.financialapplication"
+    namespace = "com.group3.financialapplication"
     compileSdk = 36
     // <-- CHANGED: Switched from unstable 36 to stable 34
 
