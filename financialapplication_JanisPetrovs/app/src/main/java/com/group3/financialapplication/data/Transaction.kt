@@ -9,7 +9,7 @@ data class Transaction(
     val id: Int = 0,
     val amount: Double,
     val category: String,
-    val date: Long, // Use a timestamp for easy sorting and filtering
+    val date: Long,
     val description: String,
     val isExpense: Boolean // true for expense, false for income
 )
