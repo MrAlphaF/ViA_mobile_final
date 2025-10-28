@@ -1,5 +1,6 @@
 package com.janis_petrovs.financialapplication.ui.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -26,6 +27,13 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+import androidx.compose.ui.tooling.preview.Preview
+
+import kotlinx.coroutines.flow.flowOf
+import com.janis_petrovs.financialapplication.data.Transaction
+import com.janis_petrovs.financialapplication.data.TransactionDao
+import com.janis_petrovs.financialapplication.ui.theme.BackgroundDark
+
 @Composable
 fun HistoryScreen(viewModel: FinanceViewModel) {
     val summary by viewModel.monthlySummary.collectAsState(
@@ -41,50 +49,61 @@ fun HistoryScreen(viewModel: FinanceViewModel) {
 
     val isNextMonthButtonEnabled = !isSameMonth(selectedDate, Calendar.getInstance())
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp)
     ) {
-        MonthSelector(
-            calendar = selectedDate,
-            onPrevious = { viewModel.goToPreviousMonth() },
-            onNext = { viewModel.goToNextMonth() },
-            isNextEnabled = isNextMonthButtonEnabled
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(4.dp)
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                SummaryRow("Income", summary.totalIncome, Color(0xFF008000))
-                SummaryRow("Expenses", summary.totalExpenses, Color.Red)
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                SummaryRow("Saved", savedAmount, if (savedAmount >= 0) Color(0xFF008000) else Color.Red, isTotal = true)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        if (summary.chartData.isEmpty()) {
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No expense data for this month.")
-            }
-        } else {
-            CustomPieChart(
-                data = summary.chartData,
-                colors = sliceColors,
-                modifier = Modifier.height(200.dp)
+            MonthSelector(
+                calendar = selectedDate,
+                onPrevious = { viewModel.goToPreviousMonth() },
+                onNext = { viewModel.goToNextMonth() },
+                isNextEnabled = isNextMonthButtonEnabled,
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(4.dp),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    SummaryRow("Income", summary.totalIncome, Color(0xFF008000))
+                    SummaryRow("Expenses", summary.totalExpenses, Color.Red)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    SummaryRow(
+                        "Saved",
+                        savedAmount,
+                        if (savedAmount >= 0) Color(0xFF008000) else Color.Red,
+                        isTotal = true
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
-            ChartLegend(chartData = summary.chartData, colors = sliceColors)
+
+            if (summary.chartData.isEmpty()) {
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No expense data for this month.")
+                }
+            } else {
+                CustomPieChart(
+                    data = summary.chartData,
+                    colors = sliceColors,
+                    modifier = Modifier.height(200.dp)
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                ChartLegend(chartData = summary.chartData, colors = sliceColors)
+            }
         }
     }
 }
@@ -194,4 +213,26 @@ fun ChartLegend(chartData: List<ChartData>, colors: List<Color>) {
             HorizontalDivider()
         }
     }
+}
+
+@SuppressLint("ViewModelConstructorInComposable")
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun HistoryScreenPreview() {
+    val fakeDao = object : TransactionDao {
+        override fun getAllTransactions() =
+            flowOf(emptyList<Transaction>())
+
+        override fun getTransactionsForMonth(startOfMonth: Long, endOfMonth: Long) =
+            flowOf(emptyList<Transaction>())
+
+        override suspend fun insert(transaction: Transaction) {}
+        override suspend fun delete(transaction: Transaction) {}
+    }
+
+    val fakeViewModel = FinanceViewModel(fakeDao)
+
+    fakeViewModel.apply {}
+
+    HistoryScreen(viewModel = fakeViewModel)
 }

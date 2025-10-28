@@ -1,5 +1,6 @@
 package com.janis_petrovs.financialapplication.ui.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.HorizontalDivider
@@ -15,11 +16,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.janis_petrovs.financialapplication.data.Transaction
+import com.janis_petrovs.financialapplication.data.TransactionDao
 import com.janis_petrovs.financialapplication.ui.viewmodel.BarChartData
 import com.janis_petrovs.financialapplication.ui.viewmodel.FinanceViewModel
 import com.janis_petrovs.financialapplication.ui.viewmodel.ReportsData
+import kotlinx.coroutines.flow.flowOf
 import kotlin.math.roundToInt // <-- THE NEW, NECESSARY IMPORT
 
 @Composable
@@ -131,4 +136,26 @@ fun CustomBarChart(
             )
         }
     }
+}
+
+@SuppressLint("ViewModelConstructorInComposable")
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun ReportsScreenPreview() {
+    val fakeDao = object : TransactionDao {
+        override fun getAllTransactions() =
+            flowOf(emptyList<Transaction>())
+
+        override fun getTransactionsForMonth(startOfMonth: Long, endOfMonth: Long) =
+            flowOf(emptyList<Transaction>())
+
+        override suspend fun insert(transaction: Transaction) {}
+        override suspend fun delete(transaction: Transaction) {}
+    }
+
+    val fakeViewModel = FinanceViewModel(fakeDao)
+
+    fakeViewModel.apply {}
+
+    ReportsScreen(viewModel = fakeViewModel)
 }

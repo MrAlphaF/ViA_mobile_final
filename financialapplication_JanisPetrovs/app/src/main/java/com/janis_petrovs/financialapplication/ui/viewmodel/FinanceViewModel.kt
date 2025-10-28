@@ -1,5 +1,6 @@
 package com.janis_petrovs.financialapplication.ui.viewmodel
 
+import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.janis_petrovs.financialapplication.data.Transaction
@@ -21,7 +22,7 @@ data class ReportsData(
     val barChartData: List<BarChartData>
 )
 
-class FinanceViewModel(private val dao: TransactionDao) : ViewModel() {
+open class FinanceViewModel(private val dao: TransactionDao) : ViewModel() {
     val allTransactions: Flow<List<Transaction>> = dao.getAllTransactions()
 
     private val _selectedDate = MutableStateFlow(Calendar.getInstance())
