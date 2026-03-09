@@ -1,5 +1,7 @@
 package com.group3.financialapplication.ui.viewmodel
 
+import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.group3.financialapplication.data.Transaction
@@ -21,99 +23,113 @@ data class ReportsData(
     val barChartData: List<BarChartData>
 )
 
-class FinanceViewModel(private val dao: TransactionDao) : ViewModel() {
+class FinanceViewModel(
+    private val dao: TransactionDao,
+    private val appContext: Context
+) : ViewModel() {
+
     val allTransactions: Flow<List<Transaction>> = dao.getAllTransactions()
 
     private val _selectedDate = MutableStateFlow(Calendar.getInstance())
     val selectedDate: StateFlow<Calendar> = _selectedDate.asStateFlow()
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val monthlySummary: Flow<MonthlySummary> = _selectedDate.flatMapLatest {
-        val (startOfMonth, endOfMonth) = getMonthStartAndEnd(it)
-        dao.getTransactionsForMonth(startOfMonth, endOfMonth)
-            .map {
-                val income = it.filter { t -> !t.isExpense }.sumOf { t -> t.amount }
-                val expenses = it.filter { t -> t.isExpense }.sumOf { t -> t.amount }
-                val chartData = it.filter { t -> t.isExpense }
-                    .groupBy { t -> t.category }
-                    .map { (cat, list) -> ChartData(cat, list.sumOf { t -> t.amount }.toFloat()) }
-                MonthlySummary(income, expenses, chartData)
-            }
+    val monthlySummary: Flow<MonthlySummary> = _selectedDate.flatMapLatest { cal ->
+        val (start, end) = getMonthStartAndEnd(cal)
+        dao.getTransactionsForMonth(start, end).map { list ->
+            val income   = list.filter { !it.isExpense }.sumOf { it.amount }
+            val expenses = list.filter {  it.isExpense }.sumOf { it.amount }
+            val chartData = list.filter { it.isExpense }
+                .groupBy { it.category }
+                .map { (cat, items) -> ChartData(cat, items.sumOf { it.amount }.toFloat()) }
+            MonthlySummary(income, expenses, chartData)
+        }
     }
 
     fun getReportsData(): Flow<ReportsData> {
-        val (startOfMonth, endOfMonth) = getMonthStartAndEnd(_selectedDate.value)
+        val (start, end) = getMonthStartAndEnd(_selectedDate.value)
+        return dao.getTransactionsForMonth(start, end).map { transactions ->
+            val expenses      = transactions.filter { it.isExpense }
+            val totalExpenses = expenses.sumOf { it.amount }
 
-        return dao.getTransactionsForMonth(startOfMonth, endOfMonth)
-            .map { transactions ->
-                val expenses = transactions.filter { it.isExpense }
-                val totalExpenses = expenses.sumOf { it.amount }
-
-                val spendingByCategory = expenses
-                    .groupBy { it.category }
-                    .mapValues { (_, transactionList) -> transactionList.sumOf { it.amount } }
-
-                val spendingWithPercentages = spendingByCategory.map { (category, spent) ->
-                    val percentage = if (totalExpenses > 0) spent / totalExpenses else 0.0
-                    mapOf("category" to category, "spent" to spent, "percentage" to percentage)
-                }.sortedByDescending { it["percentage"] as Double }
-
-                val topTwo = spendingWithPercentages.take(2)
-                val rest = spendingWithPercentages.drop(2)
-
-
-                val finalGaugeData = topTwo.map {
-                    GaugeData(it["category"] as String, it["spent"] as Double, totalExpenses)
-                }.toMutableList()
-
-                if (rest.isNotEmpty()) {
-                    val otherSpent = rest.sumOf { it["spent"] as Double }
-                    finalGaugeData.add(GaugeData("Other", otherSpent, totalExpenses))
+            val ranked = expenses
+                .groupBy { it.category }
+                .mapValues { (_, list) -> list.sumOf { it.amount } }
+                .map { (cat, spent) ->
+                    val pct = if (totalExpenses > 0) spent / totalExpenses else 0.0
+                    Triple(cat, spent, pct)
                 }
+                .sortedByDescending { it.third }
 
-                val barChartData = expenses
-                    .groupBy {
-                        val cal = Calendar.getInstance().apply { timeInMillis = it.date }
-                        cal.get(Calendar.DAY_OF_MONTH).toString()
-                    }
-                    .map { (day, transactionList) ->
-                        BarChartData(day, transactionList.sumOf { it.amount }.toFloat())
-                    }
-                    .sortedBy { it.day.toInt() }
-
-                ReportsData(finalGaugeData, barChartData)
+            val topTwo = ranked.take(2)
+            val rest   = ranked.drop(2)
+            val gaugeData = topTwo
+                .map { (cat, spent, _) -> GaugeData(cat, spent, totalExpenses) }
+                .toMutableList()
+            if (rest.isNotEmpty()) {
+                gaugeData.add(GaugeData("Other", rest.sumOf { it.second }, totalExpenses))
             }
-    }
 
-    private fun getMonthStartAndEnd(calendar: Calendar): Pair<Long, Long> {
-        val start = calendar.clone() as Calendar
-        start.set(Calendar.DAY_OF_MONTH, 1)
-        start.set(Calendar.HOUR_OF_DAY, 0)
+            val barData = expenses
+                .groupBy {
+                    Calendar.getInstance().apply { timeInMillis = it.date }
+                        .get(Calendar.DAY_OF_MONTH).toString()
+                }
+                .map { (day, list) -> BarChartData(day, list.sumOf { it.amount }.toFloat()) }
+                .sortedBy { it.day.toInt() }
 
-        val end = calendar.clone() as Calendar
-        end.add(Calendar.MONTH, 1)
-        end.add(Calendar.DAY_OF_MONTH, -1)
-        end.set(Calendar.HOUR_OF_DAY, 23)
-        return Pair(start.timeInMillis, end.timeInMillis)
-    }
-
-    fun goToPreviousMonth() {
-        val newDate = _selectedDate.value.clone() as Calendar
-        newDate.add(Calendar.MONTH, -1)
-        _selectedDate.value = newDate
-    }
-
-    fun goToNextMonth() {
-        val newDate = _selectedDate.value.clone() as Calendar
-        newDate.add(Calendar.MONTH, 1)
-        _selectedDate.value = newDate
+            ReportsData(gaugeData, barData)
+        }
     }
 
     fun addTransaction(transaction: Transaction) {
-        viewModelScope.launch { dao.insert(transaction) }
+        viewModelScope.launch {
+            dao.insert(transaction)
+            pingWidget()
+        }
     }
 
     fun deleteTransaction(transaction: Transaction) {
-        viewModelScope.launch { dao.delete(transaction) }
+        viewModelScope.launch {
+            dao.delete(transaction)
+            pingWidget()
+        }
+    }
+
+    /**
+     * Send a broadcast to the widget receiver — the system will call
+     * onUpdate() which triggers provideGlance() with fresh DB data.
+     */
+    private fun pingWidget() {
+        val intent = Intent(appContext, com.group3.financialapplication.widget.BudgetWidgetReceiver::class.java).apply {
+            action = android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE
+        }
+        appContext.sendBroadcast(intent)
+    }
+
+    fun goToPreviousMonth() {
+        _selectedDate.value = (_selectedDate.value.clone() as Calendar).apply {
+            add(Calendar.MONTH, -1)
+        }
+    }
+
+    fun goToNextMonth() {
+        _selectedDate.value = (_selectedDate.value.clone() as Calendar).apply {
+            add(Calendar.MONTH, 1)
+        }
+    }
+
+    private fun getMonthStartAndEnd(calendar: Calendar): Pair<Long, Long> {
+        val start = (calendar.clone() as Calendar).apply {
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        val end = (calendar.clone() as Calendar).apply {
+            add(Calendar.MONTH, 1); set(Calendar.DAY_OF_MONTH, 1)
+            add(Calendar.DAY_OF_MONTH, -1)
+            set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59)
+        }
+        return Pair(start.timeInMillis, end.timeInMillis)
     }
 }
