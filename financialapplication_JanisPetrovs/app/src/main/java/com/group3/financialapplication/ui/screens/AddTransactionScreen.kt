@@ -6,9 +6,12 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
@@ -21,13 +24,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import com.google.android.gms.location.Priority
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.group3.financialapplication.data.Transaction
 import com.group3.financialapplication.ui.viewmodel.FinanceViewModel
-import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.*
 
 val transactionCategories = listOf(
     "Food", "Transport", "Clothing", "Housing", "Pets", "Substances", "Other"
@@ -47,11 +50,16 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
     var selectedCategory by remember { mutableStateOf(transactionCategories[0]) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    // Date picker — defaults to today, only past dates selectable
+    var selectedDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val dateFormatter = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+
+    // Location
     var saveLocation by remember { mutableStateOf(false) }
     var locationStatus by remember { mutableStateOf("") }
     var capturedLat by remember { mutableStateOf<Double?>(null) }
     var capturedLng by remember { mutableStateOf<Double?>(null) }
-
     var hasLocationPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -63,8 +71,7 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
     fun fetchLocation() {
         locationStatus = "Getting location..."
         val cts = CancellationTokenSource()
-        fusedLocationClient
-            .getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
             .addOnSuccessListener { loc ->
                 if (loc != null) {
                     capturedLat = loc.latitude
@@ -85,11 +92,44 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         hasLocationPermission = granted
-        if (granted) {
-            fetchLocation()
-        } else {
-            saveLocation = false
-            locationStatus = "Permission denied"
+        if (granted) fetchLocation()
+        else { saveLocation = false; locationStatus = "Permission denied" }
+    }
+
+    // Date picker dialog
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDateMillis,
+            // Only allow selecting today or earlier
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    // Strip time component for fair comparison
+                    val todayStart = Calendar.getInstance().apply {
+                        set(Calendar.HOUR_OF_DAY, 23)
+                        set(Calendar.MINUTE, 59)
+                        set(Calendar.SECOND, 59)
+                    }.timeInMillis
+                    return utcTimeMillis <= todayStart
+                }
+                override fun isSelectableYear(year: Int): Boolean {
+                    return year <= Calendar.getInstance().get(Calendar.YEAR)
+                }
+            }
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { selectedDateMillis = it }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 
@@ -113,7 +153,8 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
@@ -128,6 +169,20 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
                 onValueChange = { amount = it },
                 label = { Text("Amount (€)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Date picker field
+            OutlinedTextField(
+                value = dateFormatter.format(Date(selectedDateMillis)),
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Date") },
+                trailingIcon = {
+                    IconButton(onClick = { showDatePicker = true }) {
+                        Icon(Icons.Default.CalendarMonth, contentDescription = "Pick date")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -177,8 +232,7 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
                 colors = CardDefaults.cardColors(
                     containerColor = if (capturedLat != null)
                         MaterialTheme.colorScheme.primaryContainer
-                    else
-                        MaterialTheme.colorScheme.surfaceVariant
+                    else MaterialTheme.colorScheme.surfaceVariant
                 )
             ) {
                 Row(
@@ -203,7 +257,7 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
                             Text("Save Location", style = MaterialTheme.typography.bodyMedium)
                             if (locationStatus.isNotEmpty()) {
                                 Text(
-                                    text = locationStatus,
+                                    locationStatus,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = if (capturedLat != null) MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.error
@@ -216,15 +270,10 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
                         onCheckedChange = { on ->
                             saveLocation = on
                             if (on) {
-                                if (hasLocationPermission) {
-                                    fetchLocation()
-                                } else {
-                                    permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                                }
+                                if (hasLocationPermission) fetchLocation()
+                                else permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                             } else {
-                                capturedLat = null
-                                capturedLng = null
-                                locationStatus = ""
+                                capturedLat = null; capturedLng = null; locationStatus = ""
                             }
                         }
                     )
@@ -237,15 +286,15 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
                     if (description.isNotBlank() && amountDouble != null && amountDouble > 0) {
                         val transaction = Transaction(
                             description = description,
-                            amount = amountDouble,
-                            date = Date().time,
-                            isExpense = isExpense,
-                            category = if (isExpense) selectedCategory else "Income"
+                            amount      = amountDouble,
+                            date        = selectedDateMillis,
+                            isExpense   = isExpense,
+                            category    = if (isExpense) selectedCategory else "Income"
                         )
                         viewModel.addTransactionWithLocation(
                             transaction = transaction,
-                            latitude = capturedLat,
-                            longitude = capturedLng
+                            latitude    = capturedLat,
+                            longitude   = capturedLng
                         )
                         navController.popBackStack()
                     } else {

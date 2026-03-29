@@ -25,6 +25,7 @@ import com.group3.financialapplication.data.UserProfileManager
 import com.group3.financialapplication.ui.screens.*
 import com.group3.financialapplication.ui.viewmodel.FinanceViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.collectAsState
 
 // All top-level destinations — drawer can navigate to any of these
 sealed class AppDestination(val route: String, val label: String, val icon: ImageVector) {
@@ -49,7 +50,7 @@ val drawerToolItems = listOf(
 )
 
 // Routes where the top AppBar back button should be shown instead of the hamburger
-val detailRoutes = setOf("add_transaction", "profile")
+val detailRoutes = setOf("add_transaction", "profile", "edit_transaction")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,8 +80,12 @@ fun MainScreen(viewModel: FinanceViewModel) {
         }
     }
 
+    // Disable swipe-to-open drawer on map screen — map needs horizontal swipe for panning
+    val gesturesEnabled = currentRoute != AppDestination.Map.route
+
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = gesturesEnabled,
         drawerContent = {
             AppDrawerContent(
                 profileData = profileData,
@@ -98,7 +103,7 @@ fun MainScreen(viewModel: FinanceViewModel) {
                 TopAppBar(
                     title = { Text("Financial Planner") },
                     navigationIcon = {
-                        if (currentRoute in detailRoutes) {
+                        if (detailRoutes.any { currentRoute?.startsWith(it) == true }) {
                             IconButton(onClick = { navController.popBackStack() }) {
                                 Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                             }
@@ -136,6 +141,14 @@ fun MainScreen(viewModel: FinanceViewModel) {
                 }
                 composable("add_transaction") {
                     AddTransactionScreen(navController, viewModel)
+                }
+                composable("edit_transaction/{transactionId}") { backStackEntry ->
+                    val transactionId = backStackEntry.arguments?.getString("transactionId")?.toIntOrNull()
+                    val transactions by viewModel.allTransactions.collectAsState(initial = emptyList())
+                    val transaction = transactions.find { it.id == transactionId }
+                    transaction?.let {
+                        EditTransactionScreen(navController, viewModel, it)
+                    }
                 }
                 composable("profile") {
                     ProfileScreen(navController, onProfileUpdate = reloadProfileData)

@@ -85,6 +85,13 @@ class FinanceViewModel(
         }
     }
 
+    fun updateTransaction(transaction: Transaction) {
+        viewModelScope.launch {
+            dao.update(transaction)
+            pingWidget()
+        }
+    }
+
     fun addTransaction(transaction: Transaction) {
         viewModelScope.launch {
             dao.insert(transaction)

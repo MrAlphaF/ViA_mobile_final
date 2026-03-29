@@ -6,10 +6,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,38 +27,33 @@ import java.util.Calendar
 @Composable
 fun PlanningScreen(navController: NavController, viewModel: FinanceViewModel) {
     val context = LocalContext.current
-    val settingsManager = androidx.compose.runtime.remember { SettingsManager(context) }
+    val settingsManager = remember { SettingsManager(context) }
     val settings by settingsManager.settingsFlow.collectAsState(
         initial = AppSettings(1000.0, "€", true)
     )
-
     val transactions by viewModel.allTransactions.collectAsState(initial = emptyList())
 
-    // Current month expenses only for limit tracking
-    val calendar = Calendar.getInstance()
-    val currentMonth = calendar.get(Calendar.MONTH)
-    val currentYear = calendar.get(Calendar.YEAR)
-    val thisMonthExpenses = transactions.filter {
-        it.isExpense && run {
-            val cal = Calendar.getInstance().apply { timeInMillis = it.date }
-            cal.get(Calendar.MONTH) == currentMonth && cal.get(Calendar.YEAR) == currentYear
+    val totalIncome   = transactions.filter { !it.isExpense }.sumOf { it.amount }
+    val totalExpenses = transactions.filter {  it.isExpense }.sumOf { it.amount }
+    val balance       = totalIncome - totalExpenses
+    val balanceColor  = if (balance >= 0) Color(0xFF2E7D32) else Color.Red
+
+    val now = Calendar.getInstance()
+    val totalSpentThisMonth = transactions.filter { t ->
+        t.isExpense && Calendar.getInstance().apply { timeInMillis = t.date }.let {
+            it.get(Calendar.MONTH) == now.get(Calendar.MONTH) &&
+                    it.get(Calendar.YEAR)  == now.get(Calendar.YEAR)
         }
-    }
-    val totalSpentThisMonth = thisMonthExpenses.sumOf { it.amount }
+    }.sumOf { it.amount }
 
-    val totalIncome = transactions.filter { !it.isExpense }.sumOf { it.amount }
-    val totalExpenses = transactions.filter { it.isExpense }.sumOf { it.amount }
-    val balance = totalIncome - totalExpenses
-    val balanceColor = if (balance >= 0) Color(0xFF008000) else Color.Red
-
-    // Spending limit progress
-    val monthlyLimit = settings.monthlyLimit
-    val limitProgress = if (monthlyLimit > 0) (totalSpentThisMonth / monthlyLimit).toFloat().coerceIn(0f, 1f) else 0f
-    val isOverLimit = totalSpentThisMonth > monthlyLimit
-    val limitColor = when {
-        limitProgress < 0.5f -> Color(0xFF008000)
+    val monthlyLimit  = settings.monthlyLimit
+    val limitProgress = if (monthlyLimit > 0)
+        (totalSpentThisMonth / monthlyLimit).toFloat().coerceIn(0f, 1f) else 0f
+    val isOverLimit   = totalSpentThisMonth > monthlyLimit
+    val limitColor    = when {
+        limitProgress < 0.5f -> Color(0xFF2E7D32)
         limitProgress < 0.8f -> Color(0xFFFF9800)
-        else -> Color.Red
+        else                 -> Color.Red
     }
 
     Scaffold(
@@ -68,7 +62,7 @@ fun PlanningScreen(navController: NavController, viewModel: FinanceViewModel) {
                 title = { Text("Transactions") },
                 actions = {
                     IconButton(onClick = { navController.navigate("add_transaction") }) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Transaction")
+                        Icon(Icons.Default.Add, contentDescription = "Add")
                     }
                 }
             )
@@ -76,13 +70,11 @@ fun PlanningScreen(navController: NavController, viewModel: FinanceViewModel) {
         bottomBar = {
             Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 8.dp) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "Balance:", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("Balance:", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Text(
                         text = "${settings.currency}${"%.2f".format(balance)}",
                         fontSize = 18.sp,
@@ -99,13 +91,10 @@ fun PlanningScreen(navController: NavController, viewModel: FinanceViewModel) {
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
-
-            // --- Spending Limit Card ---
+            // Monthly limit card
             item {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -120,39 +109,28 @@ fun PlanningScreen(navController: NavController, viewModel: FinanceViewModel) {
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "${settings.currency}${"%.2f".format(totalSpentThisMonth)} / ${settings.currency}${"%.2f".format(monthlyLimit)}",
+                                "${settings.currency}${"%.2f".format(totalSpentThisMonth)} / ${settings.currency}${"%.2f".format(monthlyLimit)}",
                                 fontSize = 13.sp,
                                 color = if (isOverLimit) Color.Red else MaterialTheme.colorScheme.onSurface
                             )
                         }
-
                         Spacer(Modifier.height(8.dp))
-
                         LinearProgressIndicator(
                             progress = { limitProgress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(10.dp),
+                            modifier = Modifier.fillMaxWidth().height(10.dp),
                             color = limitColor,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
-
-                        if (isOverLimit) {
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "⚠ Over limit by ${settings.currency}${"%.2f".format(totalSpentThisMonth - monthlyLimit)}",
-                                color = Color.Red,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        } else {
-                            Spacer(Modifier.height(4.dp))
-                            Text(
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = if (isOverLimit)
+                                "⚠ Over limit by ${settings.currency}${"%.2f".format(totalSpentThisMonth - monthlyLimit)}"
+                            else
                                 "${settings.currency}${"%.2f".format(monthlyLimit - totalSpentThisMonth)} remaining this month",
-                                color = limitColor,
-                                fontSize = 12.sp
-                            )
-                        }
+                            color = if (isOverLimit) Color.Red else limitColor,
+                            fontSize = 12.sp,
+                            fontWeight = if (isOverLimit) FontWeight.Medium else FontWeight.Normal
+                        )
                     }
                 }
             }
@@ -165,11 +143,16 @@ fun PlanningScreen(navController: NavController, viewModel: FinanceViewModel) {
                 )
             }
 
-            items(transactions) { transaction ->
+            items(transactions, key = { it.id }) { transaction ->
                 TransactionRow(
                     transaction = transaction,
                     currency = settings.currency,
-                    onDeleteClicked = { viewModel.deleteTransaction(transaction) }
+                    onEditClicked = {
+                        navController.navigate("edit_transaction/${transaction.id}")
+                    },
+                    onDeleteClicked = {
+                        viewModel.deleteTransaction(transaction)
+                    }
                 )
                 HorizontalDivider()
             }
@@ -178,29 +161,37 @@ fun PlanningScreen(navController: NavController, viewModel: FinanceViewModel) {
 }
 
 @Composable
-fun TransactionRow(transaction: Transaction, currency: String, onDeleteClicked: () -> Unit) {
-    val amountColor = if (transaction.isExpense) Color.Red else Color(0xFF008000)
+fun TransactionRow(
+    transaction: Transaction,
+    currency: String,
+    onEditClicked: () -> Unit,
+    onDeleteClicked: () -> Unit
+) {
+    val amountColor  = if (transaction.isExpense) Color.Red else Color(0xFF2E7D32)
     val amountPrefix = if (transaction.isExpense) "-" else "+"
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = transaction.description, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = transaction.category, fontSize = 12.sp, color = Color.Gray)
+            Text(transaction.description, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(2.dp))
+            Text(transaction.category, fontSize = 12.sp, color = Color.Gray)
         }
         Text(
             text = "$amountPrefix$currency${"%.2f".format(transaction.amount)}",
-            fontSize = 16.sp,
+            fontSize = 15.sp,
             color = amountColor,
             fontWeight = FontWeight.SemiBold
         )
+        IconButton(onClick = onEditClicked) {
+            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray)
+        }
         IconButton(onClick = onDeleteClicked) {
-            Icon(Icons.Default.Delete, contentDescription = "Delete Transaction", tint = Color.Gray)
+            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray)
         }
     }
 }
