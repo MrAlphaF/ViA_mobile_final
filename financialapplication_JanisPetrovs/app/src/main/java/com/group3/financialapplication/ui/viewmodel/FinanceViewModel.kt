@@ -2,10 +2,14 @@ package com.group3.financialapplication.ui.viewmodel
 
 import android.content.Context
 import android.content.Intent
+import android.appwidget.AppWidgetManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.group3.financialapplication.data.LocationManager
 import com.group3.financialapplication.data.Transaction
 import com.group3.financialapplication.data.TransactionDao
+import com.group3.financialapplication.data.TransactionLocation
+import com.group3.financialapplication.widget.BudgetWidgetReceiver
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -27,6 +31,8 @@ class FinanceViewModel(
     private val dao: TransactionDao,
     private val appContext: Context
 ) : ViewModel() {
+
+    private val locationManager = LocationManager(appContext)
 
     val allTransactions: Flow<List<Transaction>> = dao.getAllTransactions()
 
@@ -55,10 +61,7 @@ class FinanceViewModel(
             val ranked = expenses
                 .groupBy { it.category }
                 .mapValues { (_, list) -> list.sumOf { it.amount } }
-                .map { (cat, spent) ->
-                    val pct = if (totalExpenses > 0) spent / totalExpenses else 0.0
-                    Triple(cat, spent, pct)
-                }
+                .map { (cat, spent) -> Triple(cat, spent, if (totalExpenses > 0) spent / totalExpenses else 0.0) }
                 .sortedByDescending { it.third }
 
             val topTwo = ranked.take(2)
@@ -89,20 +92,49 @@ class FinanceViewModel(
         }
     }
 
-    fun deleteTransaction(transaction: Transaction) {
+    fun addTransactionWithLocation(
+        transaction: Transaction,
+        latitude: Double?,
+        longitude: Double?
+    ) {
         viewModelScope.launch {
-            dao.delete(transaction)
+            dao.insert(transaction)
+            if (latitude != null && longitude != null) {
+                // Find the inserted row by matching description + amount + date
+                val inserted = dao.getAllTransactions().first().firstOrNull {
+                    it.description == transaction.description &&
+                            it.amount == transaction.amount &&
+                            it.date == transaction.date
+                }
+                inserted?.let {
+                    locationManager.saveLocation(
+                        TransactionLocation(
+                            transactionId = it.id,
+                            latitude      = latitude,
+                            longitude     = longitude,
+                            description   = it.description,
+                            amount        = it.amount,
+                            category      = it.category,
+                            isExpense     = it.isExpense
+                        )
+                    )
+                }
+            }
             pingWidget()
         }
     }
 
-    /**
-     * Send a broadcast to the widget receiver — the system will call
-     * onUpdate() which triggers provideGlance() with fresh DB data.
-     */
+    fun deleteTransaction(transaction: Transaction) {
+        viewModelScope.launch {
+            dao.delete(transaction)
+            locationManager.deleteLocation(transaction.id)
+            pingWidget()
+        }
+    }
+
     private fun pingWidget() {
-        val intent = Intent(appContext, com.group3.financialapplication.widget.BudgetWidgetReceiver::class.java).apply {
-            action = android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE
+        val intent = Intent(appContext, BudgetWidgetReceiver::class.java).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
         }
         appContext.sendBroadcast(intent)
     }

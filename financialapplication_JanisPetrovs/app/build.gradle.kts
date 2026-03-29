@@ -15,7 +15,6 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -60,6 +59,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
+    // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.compose.material:material-icons-extended-android:1.6.8")
 
@@ -71,25 +71,31 @@ dependencies {
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
 
-    // Coil (image loading)
+    // Coil
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("androidx.activity:activity-compose:1.9.0")
 
-    // DataStore (Settings)
+    // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
-    // ML Kit Text Recognition (Receipt Scanner)
+    // ML Kit OCR
     implementation("com.google.mlkit:text-recognition:16.0.1")
 
-    // CameraX (for receipt scanner camera)
+    // CameraX
     implementation("androidx.camera:camera-core:1.3.4")
     implementation("androidx.camera:camera-camera2:1.3.4")
     implementation("androidx.camera:camera-lifecycle:1.3.4")
     implementation("androidx.camera:camera-view:1.3.4")
 
-    // Glance (Widget)
+    // Glance Widget
     implementation("androidx.glance:glance-appwidget:1.1.0")
     implementation("androidx.glance:glance-material3:1.1.0")
+
+    // OpenStreetMap via osmdroid (no API key needed)
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+
+    // Location (GPS for tagging transactions)
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

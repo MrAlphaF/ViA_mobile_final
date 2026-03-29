@@ -1,16 +1,30 @@
 package com.group3.financialapplication.ui.screens
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocationOff
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import com.google.android.gms.location.Priority
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.group3.financialapplication.data.Transaction
 import com.group3.financialapplication.ui.viewmodel.FinanceViewModel
 import java.util.Date
@@ -19,15 +33,65 @@ val transactionCategories = listOf(
     "Food", "Transport", "Clothing", "Housing", "Pets", "Substances", "Other"
 )
 
+@SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewModel) {
+    val context = LocalContext.current
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var isExpense by remember { mutableStateOf(true) }
     var isCategoryMenuExpanded by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(transactionCategories[0]) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    var saveLocation by remember { mutableStateOf(false) }
+    var locationStatus by remember { mutableStateOf("") }
+    var capturedLat by remember { mutableStateOf<Double?>(null) }
+    var capturedLng by remember { mutableStateOf<Double?>(null) }
+
+    var hasLocationPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    fun fetchLocation() {
+        locationStatus = "Getting location..."
+        val cts = CancellationTokenSource()
+        fusedLocationClient
+            .getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
+            .addOnSuccessListener { loc ->
+                if (loc != null) {
+                    capturedLat = loc.latitude
+                    capturedLng = loc.longitude
+                    locationStatus = "Location saved ✓"
+                } else {
+                    locationStatus = "Could not get location"
+                    saveLocation = false
+                }
+            }
+            .addOnFailureListener {
+                locationStatus = "Location failed"
+                saveLocation = false
+            }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasLocationPermission = granted
+        if (granted) {
+            fetchLocation()
+        } else {
+            saveLocation = false
+            locationStatus = "Permission denied"
+        }
+    }
 
     errorMessage?.let {
         ErrorDialog(message = it, onDismiss = { errorMessage = null })
@@ -39,10 +103,7 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
                 title = { Text("Add Transaction") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -58,7 +119,7 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Description (e.g., Salary)") },
+                label = { Text("Description") },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -66,7 +127,7 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
                 value = amount,
                 onValueChange = { amount = it },
                 label = { Text("Amount (€)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -81,7 +142,9 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
                     readOnly = true,
                     label = { Text("Category") },
                     enabled = isExpense,
-                    trailingIcon = { if(isExpense) ExposedDropdownMenuDefaults.TrailingIcon(expanded = isCategoryMenuExpanded) },
+                    trailingIcon = {
+                        if (isExpense) ExposedDropdownMenuDefaults.TrailingIcon(expanded = isCategoryMenuExpanded)
+                    },
                     modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
                 ExposedDropdownMenu(
@@ -108,21 +171,84 @@ fun AddTransactionScreen(navController: NavController, viewModel: FinanceViewMod
                 Text("Income", Modifier.padding(start = 4.dp))
             }
 
+            // Location card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (capturedLat != null)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (capturedLat != null) Icons.Default.LocationOn
+                            else Icons.Default.LocationOff,
+                            contentDescription = null,
+                            tint = if (capturedLat != null) MaterialTheme.colorScheme.primary
+                            else Color.Gray
+                        )
+                        Column {
+                            Text("Save Location", style = MaterialTheme.typography.bodyMedium)
+                            if (locationStatus.isNotEmpty()) {
+                                Text(
+                                    text = locationStatus,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (capturedLat != null) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                    Switch(
+                        checked = saveLocation,
+                        onCheckedChange = { on ->
+                            saveLocation = on
+                            if (on) {
+                                if (hasLocationPermission) {
+                                    fetchLocation()
+                                } else {
+                                    permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                }
+                            } else {
+                                capturedLat = null
+                                capturedLng = null
+                                locationStatus = ""
+                            }
+                        }
+                    )
+                }
+            }
+
             Button(
                 onClick = {
                     val amountDouble = amount.toDoubleOrNull()
                     if (description.isNotBlank() && amountDouble != null && amountDouble > 0) {
-                        val newTransaction = Transaction(
+                        val transaction = Transaction(
                             description = description,
                             amount = amountDouble,
                             date = Date().time,
                             isExpense = isExpense,
                             category = if (isExpense) selectedCategory else "Income"
                         )
-                        viewModel.addTransaction(newTransaction)
+                        viewModel.addTransactionWithLocation(
+                            transaction = transaction,
+                            latitude = capturedLat,
+                            longitude = capturedLng
+                        )
                         navController.popBackStack()
                     } else {
-
                         errorMessage = "Please enter a valid description and a positive amount."
                     }
                 },

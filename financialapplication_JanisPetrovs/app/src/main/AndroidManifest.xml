@@ -3,12 +3,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.group3.financialapplication">
 
-    <!-- Camera permission for receipt scanner -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <!-- Internet for OpenStreetMap WebView -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- For Glance widget to update -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- osmdroid tile cache -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" tools:ignore="ScopedStorage" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
@@ -31,7 +33,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Glance Widget Receiver -->
+        <!-- Glance Widget -->
         <receiver
             android:name="com.group3.financialapplication.widget.BudgetWidgetReceiver"
             android:exported="true"

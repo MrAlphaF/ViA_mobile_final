@@ -33,13 +33,15 @@ sealed class AppDestination(val route: String, val label: String, val icon: Imag
     object Reports        : AppDestination("reports",         "Reports",       Icons.Default.Assessment)
     object ReceiptScanner : AppDestination("receipt_scanner", "Scan Receipt",  Icons.Default.DocumentScanner)
     object Settings       : AppDestination("settings",        "Settings",      Icons.Default.Settings)
+    object Map            : AppDestination("map",             "Map",           Icons.Default.Map)
 }
 
 // Items shown in the drawer (top section = main nav, bottom section = tools)
 val drawerMainItems = listOf(
     AppDestination.Reports,
     AppDestination.Planning,
-    AppDestination.History
+    AppDestination.History,
+    AppDestination.Map
 )
 val drawerToolItems = listOf(
     AppDestination.ReceiptScanner,
@@ -128,6 +130,9 @@ fun MainScreen(viewModel: FinanceViewModel) {
                 }
                 composable(AppDestination.ReceiptScanner.route) {
                     ReceiptScannerScreen(navController, viewModel)
+                }
+                composable(AppDestination.Map.route) {
+                    MapScreen()
                 }
                 composable("add_transaction") {
                     AddTransactionScreen(navController, viewModel)
