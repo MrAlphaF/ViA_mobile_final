@@ -26,12 +26,30 @@ import com.group3.financialapplication.ui.screens.*
 import com.group3.financialapplication.ui.viewmodel.FinanceViewModel
 import kotlinx.coroutines.launch
 
-sealed class DrawerScreen(val route: String, val label: String, val icon: ImageVector) {
-    object Planning : DrawerScreen("planning", "Planning", Icons.Default.List)
-    object History : DrawerScreen("history", "History", Icons.Default.History)
-    object Reports : DrawerScreen("reports", "Reports", Icons.Default.Assessment)
+// All top-level destinations — drawer can navigate to any of these
+sealed class AppDestination(val route: String, val label: String, val icon: ImageVector) {
+    object Planning       : AppDestination("planning",        "Planning",      Icons.Default.List)
+    object History        : AppDestination("history",         "History",       Icons.Default.History)
+    object Reports        : AppDestination("reports",         "Reports",       Icons.Default.Assessment)
+    object ReceiptScanner : AppDestination("receipt_scanner", "Scan Receipt",  Icons.Default.DocumentScanner)
+    object Settings       : AppDestination("settings",        "Settings",      Icons.Default.Settings)
+    object Map            : AppDestination("map",             "Map",           Icons.Default.Map)
 }
-val drawerItems = listOf(DrawerScreen.Reports, DrawerScreen.Planning, DrawerScreen.History)
+
+// Items shown in the drawer (top section = main nav, bottom section = tools)
+val drawerMainItems = listOf(
+    AppDestination.Reports,
+    AppDestination.Planning,
+    AppDestination.History,
+    AppDestination.Map
+)
+val drawerToolItems = listOf(
+    AppDestination.ReceiptScanner,
+    AppDestination.Settings
+)
+
+// Routes where the top AppBar back button should be shown instead of the hamburger
+val detailRoutes = setOf("add_transaction", "profile")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,24 +63,33 @@ fun MainScreen(viewModel: FinanceViewModel) {
     var profileData by remember { mutableStateOf(userProfileManager.getProfile()) }
     val reloadProfileData = { profileData = userProfileManager.getProfile() }
 
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+
+    // Navigate to a top-level drawer destination — always clear back stack so
+    // pressing back from any main screen doesn't go back to a previous main screen.
+    fun navigateTopLevel(route: String) {
+        scope.launch { drawerState.close() }
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             AppDrawerContent(
                 profileData = profileData,
-                onItemClick = { route ->
-                    scope.launch { drawerState.close() }
-                    navController.navigate(route) {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
+                currentRoute = currentRoute,
+                onItemClick = { route -> navigateTopLevel(route) },
                 onProfileClick = {
                     scope.launch { drawerState.close() }
                     navController.navigate("profile")
-                },
-                currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+                }
             )
         }
     ) {
@@ -71,23 +98,48 @@ fun MainScreen(viewModel: FinanceViewModel) {
                 TopAppBar(
                     title = { Text("Financial Planner") },
                     navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        if (currentRoute in detailRoutes) {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            }
+                        } else {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            }
                         }
                     }
                 )
             }
         ) { innerPadding ->
             NavHost(
-                navController,
-                startDestination = DrawerScreen.Planning.route,
-                Modifier.padding(innerPadding)
+                navController = navController,
+                startDestination = AppDestination.Planning.route,
+                modifier = Modifier.padding(innerPadding)
             ) {
-                composable(DrawerScreen.Planning.route) { PlanningScreen(navController, viewModel) }
-                composable(DrawerScreen.History.route) { HistoryScreen(viewModel) }
-                composable(DrawerScreen.Reports.route) { ReportsScreen(viewModel) }
-                composable("add_transaction") { AddTransactionScreen(navController, viewModel) }
-                composable("profile") { ProfileScreen(navController, onProfileUpdate = reloadProfileData) }
+                composable(AppDestination.Planning.route) {
+                    PlanningScreen(navController, viewModel)
+                }
+                composable(AppDestination.History.route) {
+                    HistoryScreen(viewModel)
+                }
+                composable(AppDestination.Reports.route) {
+                    ReportsScreen(viewModel)
+                }
+                composable(AppDestination.Settings.route) {
+                    SettingsScreen(onBack = { navController.popBackStack() })
+                }
+                composable(AppDestination.ReceiptScanner.route) {
+                    ReceiptScannerScreen(navController, viewModel)
+                }
+                composable(AppDestination.Map.route) {
+                    MapScreen()
+                }
+                composable("add_transaction") {
+                    AddTransactionScreen(navController, viewModel)
+                }
+                composable("profile") {
+                    ProfileScreen(navController, onProfileUpdate = reloadProfileData)
+                }
             }
         }
     }
@@ -96,11 +148,12 @@ fun MainScreen(viewModel: FinanceViewModel) {
 @Composable
 fun AppDrawerContent(
     profileData: ProfileData,
+    currentRoute: String?,
     onItemClick: (String) -> Unit,
-    onProfileClick: () -> Unit,
-    currentRoute: String?
+    onProfileClick: () -> Unit
 ) {
     ModalDrawerSheet {
+        // Profile header
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -116,19 +169,37 @@ fun AppDrawerContent(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.size(80.dp).clip(CircleShape)
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
             Text(profileData.name, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            Text(profileData.email, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                profileData.email,
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
         HorizontalDivider()
 
-        drawerItems.forEach { screen ->
+        // Main nav items
+        drawerMainItems.forEach { dest ->
             NavigationDrawerItem(
-                icon = { Icon(screen.icon, contentDescription = null) },
-                label = { Text(screen.label) },
-                selected = currentRoute == screen.route,
-                onClick = { onItemClick(screen.route) },
+                icon = { Icon(dest.icon, contentDescription = null) },
+                label = { Text(dest.label) },
+                selected = currentRoute == dest.route,
+                onClick = { onItemClick(dest.route) },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        // Tool items (Receipt Scanner, Settings)
+        drawerToolItems.forEach { dest ->
+            NavigationDrawerItem(
+                icon = { Icon(dest.icon, contentDescription = null) },
+                label = { Text(dest.label) },
+                selected = currentRoute == dest.route,
+                onClick = { onItemClick(dest.route) },
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
             )
         }

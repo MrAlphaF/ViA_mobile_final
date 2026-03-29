@@ -8,15 +8,13 @@ plugins {
 android {
     namespace = "com.group3.financialapplication"
     compileSdk = 36
-    // <-- CHANGED: Switched from unstable 36 to stable 34
 
     defaultConfig {
-        applicationId = "com.janis_petrovs.financialapplication"
+        applicationId = "com.group3.financialapplication"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -61,14 +59,43 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
+    // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
-
     implementation("androidx.compose.material:material-icons-extended-android:1.6.8")
 
-    implementation("androidx.room:room-runtime:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
+    // Room
+    implementation("androidx.room:room-runtime:2.7.1")
+    kapt("androidx.room:room-compiler:2.7.1")
+    implementation("androidx.room:room-ktx:2.7.1")
+
+    // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
+
+    // Coil
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("androidx.activity:activity-compose:1.9.0")
+
+    // DataStore
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // ML Kit OCR
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+
+    // CameraX
+    implementation("androidx.camera:camera-core:1.3.4")
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+
+    // Glance Widget
+    implementation("androidx.glance:glance-appwidget:1.1.0")
+    implementation("androidx.glance:glance-material3:1.1.0")
+
+    // OpenStreetMap via osmdroid (no API key needed)
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+
+    // Location (GPS for tagging transactions)
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -77,7 +104,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    implementation("io.coil-kt:coil-compose:2.6.0")
-    implementation("androidx.activity:activity-compose:1.9.0")
-
 }

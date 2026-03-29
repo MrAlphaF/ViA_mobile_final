@@ -19,7 +19,10 @@ import com.group3.financialapplication.ui.viewmodel.FinanceViewModelFactory
 class MainActivity : ComponentActivity() {
 
     private val financeViewModel: FinanceViewModel by viewModels {
-        FinanceViewModelFactory(DatabaseProvider.getDatabase(this).transactionDao())
+        FinanceViewModelFactory(
+            dao = DatabaseProvider.getDatabase(this).transactionDao(),
+            appContext = applicationContext   // <-- passed so widget can be updated
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,14 +41,9 @@ fun AppNavigator(viewModel: FinanceViewModel) {
 
     NavHost(navController = navController, startDestination = "auth") {
         navigation(startDestination = "login", route = "auth") {
-            composable("login") {
-                LoginScreen(navController = navController)
-            }
-            composable("signup") {
-                SignUpScreen(navController = navController)
-            }
+            composable("login")  { LoginScreen(navController = navController) }
+            composable("signup") { SignUpScreen(navController = navController) }
         }
-        
         composable("main_app") {
             MainScreen(viewModel = viewModel)
         }
